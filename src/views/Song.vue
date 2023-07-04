@@ -33,19 +33,22 @@ export default {
       })
     }
   },
-  async created() {
-    const docSnapshot = await getDoc(doc(songsCollection, this.$route.params.id))
-    if (!docSnapshot.exists()) {
-      this.$router.push({ name: 'home' })
-      return
-    }
+  async beforeRouteEnter(to, from, next) {
+    const docSnapshot = await getDoc(doc(songsCollection, to.params.id))
 
-    const { sort } = this.$route.query
+    next((vm) => {
+      if (!docSnapshot.exists()) {
+        vm.$router.push({ name: 'home' })
+        return
+      }
 
-    this.sort = sort === '1' || sort === '2' ? sort : '1'
+      const { sort } = vm.$route.query
 
-    this.song = docSnapshot.data()
-    this.getComments()
+      vm.sort = sort === '1' || sort === '2' ? sort : '1'
+
+      vm.song = docSnapshot.data()
+      vm.getComments()
+    })
   },
   methods: {
     ...mapActions(usePlayerStore, ['newSong']),
@@ -125,6 +128,7 @@ export default {
       <div class="container mx-auto flex items-center">
         <!-- Play/Pause Button -->
         <button
+          id="play-btn"
           @click.prevent="newSong(song)"
           type="button"
           class="z-50 h-24 w-24 text-3xl bg-white text-black rounded-full focus:outline-none"
@@ -135,6 +139,7 @@ export default {
           <!-- Song Info -->
           <div class="text-3xl font-bold">{{ song.modified_name }}</div>
           <div>{{ song.genre }}</div>
+          <div class="song-price">{{ $n(1, 'currency', 'ja') }}</div>
         </div>
       </div>
     </section>
@@ -143,7 +148,11 @@ export default {
       <div class="bg-white rounded border border-gray-200 relative flex flex-col">
         <div class="px-6 pt-6 pb-5 font-bold border-b border-gray-200">
           <!-- Comment Count -->
-          <span class="card-title">Comments ({{ song.comment_count }})</span>
+          <span class="card-title">{{
+            $tc('song.comment_count', song.comment_count, {
+              count: song.comment_count
+            })
+          }}</span>
           <i class="fa fa-comments float-right text-green-400 text-2xl"></i>
         </div>
         <div class="p-6">
